@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Simple Calculator</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+        }
+        .calculator {
+            border: 1px solid #ccc;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+        }
+        .display {
+            width: 100%;
+            height: 50px;
+            text-align: right;
+            font-size: 2em;
+            padding: 10px;
+            margin-bottom: 10px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+        }
+        .buttons {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 10px;
+        }
+        .button {
+            width: 100%;
+            padding: 20px;
+            font-size: 1.5em;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        .button.operator {
+            background-color: #f0ad4e;
+            color: white;
+        }
+        .button.equal {
+            background-color: #5cb85c;
+            color: white;
+        }
+    </style>
+</head>
+<body>
+    <div class="calculator">
+        <div class="display" id="display"></div>
+        <div class="buttons">
+            <button class="button" onclick="appendNumber(7)">7</button>
+            <button class="button" onclick="appendNumber(8)">8</button>
+            <button class="button" onclick="appendNumber(9)">9</button>
+            <button class="button operator" onclick="chooseOperation('/')">÷</button>
+            
+            <button class="button" onclick="appendNumber(4)">4</button>
+            <button class="button" onclick="appendNumber(5)">5</button>
+            <button class="button" onclick="appendNumber(6)">6</button>
+            <button class="button operator" onclick="chooseOperation('*')">×</button>
+            
+            <button class="button" onclick="appendNumber(1)">1</button>
+            <button class="button" onclick="appendNumber(2)">2</button>
+            <button class="button" onclick="appendNumber(3)">3</button>
+            <button class="button operator" onclick="chooseOperation('-')">-</button>
+            
+            <button class="button" onclick="appendNumber(0)">0</button>
+            <button class="button" onclick="clearDisplay()">C</button>
+            <button class="button equal" onclick="calculate()">=</button>
+            <button class="button operator" onclick="chooseOperation('+')">+</button>
+        </div>
+    </div>
+
+    <script>
+        const API_URL = 'http://localhost:3000';
+        let display = document.getElementById('display');
+        let currentInput = '';
+        let previousInput = '';
+        let operation = null;
+
+        function appendNumber(number) {
+            currentInput = currentInput.toString() + number.toString();
+            updateDisplay();
+        }
+
+        function updateDisplay() {
+            display.innerText = currentInput;
+        }
+
+        function clearDisplay() {
+            currentInput = '';
+            previousInput = '';
+            operation = null;
+            updateDisplay();
+        }
+
+        function chooseOperation(op) {
+            if (currentInput === '') return;
+            if (previousInput !== '') {
+                calculate();
+            }
+            operation = op;
+            previousInput = currentInput;
+            currentInput = '';
+        }
+
+        async function calculate() {
+            if (previousInput === '' || currentInput === '') return;
+            const prev = parseFloat(previousInput);
+            const current = parseFloat(currentInput);
+            if (isNaN(prev) || isNaN(current)) return;
+
+            let endpoint;
+            switch (operation) {
+                case '+':
+                    endpoint = 'add';
+                    break;
+                case '-':
+                    endpoint = 'subtract';
+                    break;
+                case '*':
+                    endpoint = 'multiply';
+                    break;
+                case '/':
+                    endpoint = 'divide';
+                    break;
+                default:
+                    return;
+            }
+
+            try {
+                const response = await fetch(`${API_URL}/${endpoint}`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ a: prev, b: current })
+                });
+                const data = await response.json();
+                if (response.ok) {
+                    currentInput = data.result;
+                    operation = null;
+                    previousInput = '';
+                    updateDisplay();
+                } else {
+                    alert(data.error);
+                }
+            } catch (error) {
+                alert('Error connecting to the API');
+            }
+        }
+    </script>
+</body>
+</html>
